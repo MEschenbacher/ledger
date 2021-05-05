@@ -146,16 +146,24 @@ std::size_t session_t::read_data(const string& master_account)
   }
 
   foreach (const path& pathname, HANDLER(file_).data_files) {
-    if (pathname == "-" || pathname == "/dev/stdin") {
+    if (!is_regular_file(pathname)) {
       // To avoid problems with stdin and pipes, etc., we read the entire
       // file in beforehand into a memory buffer, and then parcel it out
       // from there.
+
+      std::istream* in;
+
+      if (pathname == "-")
+        in = &std::cin;
+      else
+        in = new std::ifstream(pathname.string());
+
       std::ostringstream buffer;
 
-      while (std::cin.good() && ! std::cin.eof()) {
+      while (in->good() && ! in->eof()) {
         char line[8192];
-        std::cin.read(line, 8192);
-        std::streamsize count = std::cin.gcount();
+        in->read(line, 8192);
+        std::streamsize count = in->gcount();
         buffer.write(line, count);
       }
       buffer.flush();
